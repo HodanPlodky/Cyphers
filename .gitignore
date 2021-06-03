@@ -1,7 +1,12 @@
 # ignore all
 *
+RC4/*
 # allowed
 !.gitignore
-!*.cpp
+!RC4
+!*.c
+!RC4/*.c
 !Makefile
+!RC4/Makefile
 !README.md
+!RC4/README.md

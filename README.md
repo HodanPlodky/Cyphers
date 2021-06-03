@@ -1,3 +1,2 @@
-# My implementation of RC4 cypher
+# Repository for my implemetation of cyphers
 
-Ahoj
