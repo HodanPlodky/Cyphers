@@ -1,14 +1,14 @@
 CC = gcc
 FLAGS = -g -Wall -pedantic 
 
-all : main
+all : a5
 run:
 	./test.py tests/ main
-main: main.o
+a5: main.o
 	$(CC) -o $@ $< $(FLAGS)
 
 %.o: %.cpp
 	$(CC) -c -o $@ $< $(FLAGS)
 
 clean:
-	rm main *.o
+	rm a5 *.o

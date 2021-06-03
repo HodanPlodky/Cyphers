@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 // helper types because i cannot be bothered
 typedef unsigned char uint8_t;
@@ -123,69 +124,63 @@ getaccKeybit(Registers * reg) {
     return r1 ^ r2 ^ r3;
 }
 
-// buffer len same as in presentation
-#define BUFFER_LEN 228/8
-
-void
-generateKey(Registers * reg, uint8_t * buffer) {
-    for (uint32_t i = 0; i < BUFFER_LEN; i++) {
-        for (uint32_t j = 0; j < 8; j++) {
-            buffer[i] ^= getaccKeybit(reg) << j;
-            majorityruleClock(reg);
-        }
+uint8_t
+getNextPass(Registers * reg) {
+    uint8_t result = 0;
+    for (uint32_t i = 0; i < 8; i++) {
+        result ^= getaccKeybit(reg) << i;
+        majorityruleClock(reg);
     }
+    return result; 
 }
 
 void
-writeByteArray(uint8_t * buffer) {
-    for (uint32_t i = 0; i < BUFFER_LEN; i++) {
-        printf("%02x ", buffer[i]);
-    }
-    printf("\n");
-}
-
-// if you want to show buffer uncomment line bellow
-//#define WRITE_BUFFER
-
-void
-crypt(uint8_t * in, uint8_t * out) {
+cryptstream(uint64_t key, uint32_t iv) {
     Registers regs;
-    uint64_t key = 0x5cd11d783eb2f472; // same as was in video from presentation
-    uint32_t iv = 0x34f357; // same as key
     init(&regs, key, iv);
-
-    uint8_t buffer[BUFFER_LEN];
-    for (uint32_t i = 0; i < BUFFER_LEN; i++)
-        buffer[i] = 0;
-    generateKey(&regs, buffer);
-
-#ifdef WRITE_BUFFER
-    printf("buffer : ");
-    writeByteArray(buffer);
-#endif
-
-    for (uint32_t i = 0; i < BUFFER_LEN; i++) {
-        out[i] = in[i] ^ buffer[i];
+    FILE * inputstream = freopen(NULL, "rb", stdin);
+    while (1) {
+        uint8_t xorbyte = getNextPass(&regs);
+        uint8_t input;
+        if (fread(&input, sizeof(input), 1, inputstream) == 0)
+            break;
+        printf("%c", input ^ xorbyte);
     }
+    fclose(inputstream);
+}
+
+uint64_t
+generateKey(char * argv) {
+    uint64_t result = 0;
+    for(uint32_t i = 0; i < 8; i++) {
+        result <<= 8;
+        result ^= argv[i];
+    }
+    return result;
+}
+
+uint32_t 
+generateIv(char * argv) {
+    uint32_t result = 0;
+    for (uint32_t i = 0; i < 4; i++) {
+        result <<= 8;
+        result ^= argv[i];
+    }
+    return result;
 }
 
 int
-main() {
-    // must be size of buffer (28B = 228 bit)
-    uint8_t input[BUFFER_LEN] = "Hello A5, 12345678909123456\0";
-    uint8_t output[BUFFER_LEN];
-    uint8_t decrypt[BUFFER_LEN];
-    printf("input = %s\n", input);
-    crypt(input, output);
-
-    printf("encrypted : ");
-    writeByteArray(output);
-
-    crypt(output, decrypt);
-
-    printf("decrypted : ");
-    writeByteArray(decrypt);
-    printf("in string = %s\n", decrypt);
-
+main(int argc, char ** argv) {
+    if (argc != 2) {
+        fprintf(stderr, "most contain password(64bit) and vector(22bit)\n");
+        fprintf(stderr, "it is inputed as string of length 12\n");
+        return 1;
+    }
+    if (strlen(argv[1]) != 12) {
+        fprintf(stderr, "password must be 12 characters long\n");
+    }
+    uint64_t key = generateKey(argv[1]);
+    uint32_t iv = generateIv(argv[1]);
+    cryptstream(key, iv);
     return 0;
 }
