@@ -1,0 +1,7 @@
+# ignore all
+*
+# allowed
+!.gitignore
+!*.cpp
+!Makefile
+!README.md
