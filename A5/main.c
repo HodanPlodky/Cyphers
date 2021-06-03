@@ -178,6 +178,7 @@ main(int argc, char ** argv) {
     }
     if (strlen(argv[1]) != 12) {
         fprintf(stderr, "password must be 12 characters long\n");
+        return 1;
     }
     uint64_t key = generateKey(argv[1]);
     uint32_t iv = generateIv(argv[1]);
