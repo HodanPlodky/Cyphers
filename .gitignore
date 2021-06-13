@@ -5,6 +5,7 @@
 !.gitignore
 !RC4
 !A5
+!MD5
 !*/*.c
 !*/Makefile
 !*/README.md
