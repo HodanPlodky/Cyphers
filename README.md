@@ -9,3 +9,4 @@ So if you want to encrypt file you can do it like this
 ## Already done
 * RC4
 * A5
+* MD5
