@@ -48,14 +48,6 @@ leftrotate(uint32_t x, uint32_t c) {
 }
 
 void
-printBlock(uint8_t chunks[64]) {
-    for (int i = 0; i < 64; i++) {
-        printf("%02x", chunks[i]);
-    }
-    printf("\n");
-}
-
-void
 handleBlock(uint8_t block[64], uint32_t * a0, uint32_t * b0, uint32_t * c0, uint32_t * d0) {
     uint32_t a = *a0;
     uint32_t b = *b0;
