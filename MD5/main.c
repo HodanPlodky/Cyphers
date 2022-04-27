@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+//#include <assert.h>
 
 // used wiki alot 
 // https://en.wikipedia.org/wiki/MD5
@@ -47,15 +48,23 @@ leftrotate(uint32_t x, uint32_t c) {
 }
 
 void
-handleBlock(uint32_t block[16], uint32_t * a0, uint32_t * b0, uint32_t * c0, uint32_t * d0) {
+printBlock(uint8_t chunks[64]) {
+    for (int i = 0; i < 64; i++) {
+        printf("%02x", chunks[i]);
+    }
+    printf("\n");
+}
+
+void
+handleBlock(uint8_t block[64], uint32_t * a0, uint32_t * b0, uint32_t * c0, uint32_t * d0) {
     uint32_t a = *a0;
     uint32_t b = *b0;
     uint32_t c = *c0;
     uint32_t d = *d0;
     for (uint32_t i = 0; i < 64; i++) {
-        uint32_t f, g;
+        int f, g;
         if (i <= 15) {
-            f = (b & c) | ((~b) & c);
+            f = (b & c) | ((~b) & d);
             g = i;
         }
         else if (i <= 31) {
@@ -70,11 +79,17 @@ handleBlock(uint32_t block[16], uint32_t * a0, uint32_t * b0, uint32_t * c0, uin
             f = c ^ (b | (~d));
             g = (7 * i) % 16;
         }
-        f = f + a + k[i] + block[g];
+        uint32_t tmp = 0;
+        {
+            uint32_t * buf = (uint32_t*)block;
+            tmp = buf[g];
+        }
+
+        int rot = f + a + k[i] + tmp;
         a = d;
         d = c;
         c = b;
-        b = b + leftrotate(f, s[i]);
+        b = b + leftrotate(rot, s[i]);
     }
     *a0 += a;
     *b0 += b;
@@ -84,33 +99,49 @@ handleBlock(uint32_t block[16], uint32_t * a0, uint32_t * b0, uint32_t * c0, uin
 
 void
 md5hash(uint8_t buffer[16]) {
-    uint32_t block[16];
+    uint8_t block[64];
     FILE * inputstream = freopen(NULL, "rb", stdin);
+
+    // magic numbers
     uint32_t a0 = 0x67452301;
     uint32_t b0 = 0xefcdab89;
     uint32_t c0 = 0x98badcfe;
     uint32_t d0 = 0x10325476;
+
+    // length of message in bytes
     size_t sum = 0;
     while(1) {
+        // tring to read whole block from stdin
         size_t read = fread(block, 1, sizeof(uint32_t) * 16, inputstream);
         sum += read;
+
         if (read < sizeof(uint32_t) * 16) {
             // padding
-            size_t sizeneeded = (56 - ((sum + 1) % 64));// + read + 8;
-            if (sizeneeded < 0)
-                sizeneeded += 64;
-            sizeneeded += read + 8 + 1;
+            size_t sizeneeded = 64;
+            if (read + 9 > 64)
+                sizeneeded = 128;
             uint8_t * blockBytes = (uint8_t*) malloc(sizeneeded);
             memcpy(blockBytes, block, read);
+
+            // add 1 bit to end of message
             blockBytes[read] = 1 << 7;
+
+            // adding 0 bits until messages length mod 512 is 448 in bits
             for(size_t i = read + 1; i < sizeneeded - 8; i++) {
                 blockBytes[i] = 0;
             }
-            for (size_t i = 0; i < 8; i++) {
-                blockBytes[sizeneeded - 8 + i] = sum >> ((8 - i - 1) * 8);
+
+            // adding original length of bits in message mod 2^64
+            sum <<= 3;
+            {
+                uint8_t * buf = (uint8_t*)&sum;
+                uint8_t * out = blockBytes + (sizeneeded - 8);
+                for (size_t i = 0; i < 8; i++) {
+                    out[i] = buf[i];
+                }
             }
             for (size_t i = 0; i < sizeneeded; i += 64) {
-                handleBlock((uint32_t*)(blockBytes + i), &a0, &b0, &c0, &d0);
+                handleBlock((blockBytes + i), &a0, &b0, &c0, &d0);
             }
             free(blockBytes);
             break;
@@ -122,22 +153,13 @@ md5hash(uint8_t buffer[16]) {
     }
     fclose(inputstream);
     // concat output
-    buffer[0]   = (uint8_t)(a0 >> 24);
-    buffer[1]   = (uint8_t)(a0 >> 16);
-    buffer[2]   = (uint8_t)(a0 >> 8);
-    buffer[3]   = (uint8_t) a0;
-    buffer[4]   = (uint8_t)(b0 >> 24);
-    buffer[5]   = (uint8_t)(b0 >> 16);
-    buffer[6]   = (uint8_t)(b0 >> 8);
-    buffer[7]   = (uint8_t) b0;
-    buffer[8]   = (uint8_t)(c0 >> 24);
-    buffer[9]   = (uint8_t)(c0 >> 16);
-    buffer[10]  = (uint8_t)(c0 >> 8);
-    buffer[11]  = (uint8_t) c0;
-    buffer[12]  = (uint8_t)(d0 >> 24);
-    buffer[13]  = (uint8_t)(d0 >> 16);
-    buffer[14]  = (uint8_t)(d0 >> 8);
-    buffer[15]  = (uint8_t) d0;
+    {
+        uint32_t * tmp = (uint32_t *) buffer;
+        tmp[0] = a0;
+        tmp[1] = b0;
+        tmp[2] = c0;
+        tmp[3] = d0;
+    }
 }
 
 int

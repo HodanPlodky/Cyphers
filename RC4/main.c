@@ -55,6 +55,6 @@ main(int argc, char ** argv) {
     }
     size_t keylen = strlen(argv[1]);
 
-    cypherstream(argv[1], keylen);
+    cypherstream((uint8_t*)argv[1], keylen);
     return 0;
 }

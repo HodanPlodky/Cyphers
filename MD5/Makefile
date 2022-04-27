@@ -1,5 +1,5 @@
 CC = gcc -g
-FLAGS = -Wall -pedantic -g 
+FLAGS = -Wall -pedantic -g -O2 
 
 all : md5
 md5: main.o
