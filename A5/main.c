@@ -94,7 +94,7 @@ init(Registers * reg, uint64_t key, uint32_t iv) {
     reg->r3 = 0;
     // insert key
     for (uint32_t i = 0; i < 64; i++) {
-        uint64_t index = 1 << i;
+        uint64_t index = 1UL << i;
         uint32_t keyval = key & index ? 1 : 0;
         reg->r1 ^= keyval;
         reg->r2 ^= keyval;

@@ -113,6 +113,9 @@ md5hash(uint8_t buffer[16]) {
             if (read + 9 > 64)
                 sizeneeded = 128;
             uint8_t * blockBytes = (uint8_t*) malloc(sizeneeded);
+            if (blockBytes == NULL) {
+                exit(-1);
+            }
             memcpy(blockBytes, block, read);
 
             // add 1 bit to end of message
